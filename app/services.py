@@ -1,5 +1,6 @@
 import ollama
 from .neo4j_client import Neo4jClient
+import os
 from .models import WebhookPayload, TrainRequest
 from .llm import get_explanation_from_llm
 
@@ -38,8 +39,18 @@ def ollama_train(req: TrainRequest):
     modelfile_content = f"""
     FROM {req.base_model}
     SYSTEM "{req.system_prompt}"
-    ADAPTER ./{req.dataset_path}
+    ADAPTER {os.path.abspath(req.dataset_path)}
     """
+    try:
+        # Check if Ollama server is running
+        ollama.ping()
+    except ollama.ResponseError as e:
+        return {"status": "error", "model_name": req.model_name, "details": f"Ollama server not reachable: {str(e)}"}
+
+    # Check if dataset path exists
+    if not os.path.exists(req.dataset_path):
+        return {"status": "error", "model_name": req.model_name, "details": f"Dataset file not found at {req.dataset_path}"}
+
     try:
         ollama.create(model=req.model_name, modelfile=modelfile_content)
         return {"status": "success", "model_name": req.model_name}

@@ -64,7 +64,7 @@ def get_model_info():
     if provider == "ollama":
         model_name = os.getenv("OLLAMA_MODEL")
         try:
-            details = ollama.show(model_name)
+            details = ollama.show(model_name).model_dump()
         except ollama.ResponseError:
             details = {"error": f"Model '{model_name}' not found locally."}
     elif provider == "openai":
