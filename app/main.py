@@ -9,6 +9,10 @@ import ollama
 app = FastAPI(title="AI-Powered ASPM Backend")
 db = Neo4jClient()
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the AI-Powered ASPM Backend!"}
+
 @app.on_event("startup")
 def startup_event():
     db.init_constraints()

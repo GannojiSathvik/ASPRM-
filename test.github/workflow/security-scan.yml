@@ -1,0 +1,33 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main ] # Runs every time you push to the 'main' branch
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run Semgrep Scan
+        id: semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          # Export the scan results to a JSON file
+          outputFormat: "json"
+          outputFile: "semgrep-results.json"
+
+      - name: Send Results to ASPM Webhook
+        # This step runs only if the previous step found vulnerabilities
+        if: steps.semgrep.outputs.exit_code == 1
+        run: |
+          # Add the repository and commit info to the JSON file
+          jq --arg repo "$GITHUB_REPOSITORY" --arg commit "$GITHUB_SHA" \
+          '. + {repo_name: $repo, commit: $commit}' semgrep-results.json > final-payload.json
+
+          # Send the final payload to your application's webhook
+          curl -X POST ${{ secrets.ASPM_WEBHOOK_URL }} \
+          -H "Content-Type: application/json" \
+          -d @final-payload.json
